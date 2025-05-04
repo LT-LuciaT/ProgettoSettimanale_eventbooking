@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS ruoli (
+    id BIGSERIAL PRIMARY KEY,
+    nome VARCHAR(20) NOT NULL
+);
+CREATE TABLE IF NOT EXISTS utenti (
+    id BIGSERIAL PRIMARY KEY,
+    nome VARCHAR(20) NOT NULL,
+    cognome VARCHAR(20) NOT NULL,
+    email VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL,
+    ruolo_id BIGINT NOT NULL REFERENCES ruoli(id)
+);
+CREATE TABLE IF NOT EXISTS eventi (
+    id BIGSERIAL PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    descrizione VARCHAR(500) NOT NULL,
+    data DATE NOT NULL,
+    luogo VARCHAR(50) NOT NULL,
+    organizzatore_id BIGINT NOT NULL REFERENCES utenti(id)
+);
+
+INSERT INTO ruoli(nome) VALUES('UTENTE');
+INSERT INTO ruoli(nome) VALUES('ORGANIZZATORE');

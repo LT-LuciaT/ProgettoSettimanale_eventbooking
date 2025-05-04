@@ -2,18 +2,18 @@ package it.epicode.eventbooking.modelli;
 
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-
+import lombok.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+
 @Entity
 @Table(name = "eventi")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Evento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,38 +22,25 @@ public class Evento {
     @Column(nullable = false)
     private String titolo;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String descrizione;
 
     @Column(nullable = false)
-    private LocalDateTime data;
+    private LocalDateTime dataOra;
 
     @Column(nullable = false)
     private String luogo;
 
     @Column(nullable = false)
-    private Integer postiDisponibili;
+    private int postiTotali;
 
     @Column(nullable = false)
-    private Integer postiTotali;
+    private int postiDisponibili;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizzatore_id", nullable = false)
     private Utente organizzatore;
 
-    @ManyToMany
-    @JoinTable(name = "prenotazioni",
-            joinColumns = @JoinColumn(name = "evento_id"),
-            inverseJoinColumns = @JoinColumn(name = "utente_id"))
-    private Set<Utente> partecipanti = new HashSet<>();
-
-    public Evento(String titolo, String descrizione, LocalDateTime data, String luogo, Integer postiTotali, Utente organizzatore) {
-        this.titolo = titolo;
-        this.descrizione = descrizione;
-        this.data = data;
-        this.luogo = luogo;
-        this.postiTotali = postiTotali;
-        this.postiDisponibili = postiTotali;
-        this.organizzatore = organizzatore;
-    }
+    @OneToMany(mappedBy = "evento", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Prenotazione> prenotazioni = new HashSet<>();
 }
