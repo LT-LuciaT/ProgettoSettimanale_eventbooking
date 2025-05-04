@@ -12,12 +12,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import lombok.extern.slf4j.Slf4j;
 import java.util.Optional;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppUserService {
@@ -27,37 +29,58 @@ public class AppUserService {
     private final JwtTokenUtil jwtTokenUtil;
 
     public AppUser registerUser(RegisterRequest request) {
+        log.debug("Inizio registrazione nuovo utente: {}", request.getUsername());
+
         if (appUserRepository.existsByUsername(request.getUsername())) {
+            log.warn("Username {} già in uso", request.getUsername());
             throw new EntityExistsException("Username già in uso");
         }
 
         if (appUserRepository.existsByEmail(request.getEmail())) {
+            log.warn("Email {} già in uso", request.getEmail());
             throw new EntityExistsException("Email già in uso");
         }
 
+        log.debug("Creazione nuovo utente {}...", request.getUsername());
         AppUser appUser = new AppUser();
         appUser.setUsername(request.getUsername());
         appUser.setEmail(request.getEmail());
         appUser.setPassword(passwordEncoder.encode(request.getPassword()));
         appUser.setRoles(Set.of(request.getRuolo()));
 
-        return appUserRepository.save(appUser);
-    }
+        AppUser savedUser = appUserRepository.save(appUser);
+        log.info("Utente {} registrato con successo con ID {}",
+                savedUser.getUsername(),
+                savedUser.getId());
 
+        return savedUser;
+    }
     public Optional<AppUser> findByUsername(String username) {
         return appUserRepository.findByUsername(username);
     }
 
     public String authenticate(String username, String password) {
+        log.debug("Tentativo di login per username: {}", username);
         try {
-            Authentication authentication = authenticationManager.authenticate(
+            // DEBUG: Verifica preliminare
+            AppUser user = appUserRepository.findByUsername(username)
+                    .orElseThrow(() -> {
+                        log.error("Utente {} non trovato", username);
+                        return new UsernameNotFoundException("Utente non trovato");
+                    });
+
+            log.debug("Hash password DB per {}: {}", username, user.getPassword());
+            log.debug("Password raw input: {}", password);
+
+            // Autenticazione
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
 
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            return jwtTokenUtil.generateToken(userDetails);
-        } catch (AuthenticationException e) {
-            throw new SecurityException("Credenziali non valide", e);
+            return jwtTokenUtil.generateToken((UserDetails) auth.getPrincipal());
+        } catch (Exception e) {
+            log.error("ERRORE durante login per {}: {}", username, e.toString());
+            throw new SecurityException("Errore autenticazione", e);
         }
     }
 

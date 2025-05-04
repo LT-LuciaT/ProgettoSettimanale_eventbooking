@@ -23,4 +23,6 @@ public class CreateEventoRequest {
 
     @Min(value = 1, message = "Deve esserci almeno un posto")
     private int postiTotali;
+
+    private String organizzatoreUsername;
 }
